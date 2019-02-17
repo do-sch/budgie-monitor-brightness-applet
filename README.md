@@ -58,7 +58,7 @@ sudo usermod $USER -aG i2c
 ddcutil comes with an udev rule that gives the group i2c permissions to the i2c interfaces. This one has to be copied to /etc/udev/rules.d
 
 ```bash
-sudo cp /usr/share/ddcutil/data/etc/udev/rules.d/45-ddcutils-i2c.rules /etc/udev/rules.d
+sudo cp /usr/share/ddcutil/data/45-ddcutils-i2c.rules /etc/udev/rules.d
 ```
 
 finaly the module **i2c_dev** has to be loaded on every startup:
