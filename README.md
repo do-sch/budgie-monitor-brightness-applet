@@ -73,5 +73,5 @@ sudo sh -c "echo i2c_dev > /etc/modules-load.d/i2c-dev.conf"
 meson --prefix /usr --buildtype=plain build
 cd build
 ninja
-sudo ninja -C install build
+sudo ninja install
 ```
