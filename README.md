@@ -64,7 +64,7 @@ sudo cp /usr/share/ddcutil/data/45-ddcutils-i2c.rules /etc/udev/rules.d
 finaly the module **i2c_dev** has to be loaded on every startup:
 
 ```bash
-sudo echo i2c_dev > /etc/modules-load.d/i2c-dev.conf
+sudo sh -c "echo i2c_dev > /etc/modules-load.d/i2c-dev.conf"
 ```
 
 ## Building and Installation
