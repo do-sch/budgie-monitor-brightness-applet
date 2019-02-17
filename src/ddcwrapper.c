@@ -172,7 +172,7 @@ static void set_brightness_thread(void* val){
 }
 
 /**
- * 
+ * initializes ddcci stuff in its own thread and gives back number of displays to callback function
  */
 static void count_displays_and_init_thread(void (*callback)(int)) 
 {

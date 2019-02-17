@@ -16,15 +16,14 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __DDCWRAPPER__
-#define DDCWRAPPER
+#pragma once
 
 #include <ddcutil_c_api.h>
 #include <pthread.h>
 #include <stdlib.h>
 
 /**
- * initializes ddcci stuff and gives back the number of compatible displays
+ * initializes ddcci stuff and gives back the number of compatible displays to callback function
  */
 void count_displays_and_init(void (*callback)(int));
 
@@ -34,7 +33,7 @@ void count_displays_and_init(void (*callback)(int));
 char *get_display_name(int dispnum);
 
 /**
- * returns brightness of selected display
+ * returns brightness of selected display to callback function
  */
 void get_brightness_percentage(int dispnum, void* userdata, void (*callback)(int, void*));
 
@@ -53,4 +52,3 @@ void set_brightness_percentage_for_all(int value);
  */
 void free_ddca();
 
-#endif
