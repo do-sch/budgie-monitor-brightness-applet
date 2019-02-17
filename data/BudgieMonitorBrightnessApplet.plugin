@@ -1,0 +1,8 @@
+[Plugin]
+Module=libbudgiemonitorbrightnessapplet.so
+Name=Monitor Brightness
+Description=Change your external monitors brightness
+Authors=Dominik Schütz
+Copyright=Copyright © 2019 Dominik Schütz
+Website=https://www.github.com
+Icon=display-brightness-symbolic
