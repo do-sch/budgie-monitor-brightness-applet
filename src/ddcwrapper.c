@@ -63,8 +63,18 @@ static int cmp(const void* a, const void* b) {
 	return ((*(Display_Info**) a) -> dispno) - ((*(Display_Info**) b) -> dispno);
 }
 
+static void error(DDCA_Status code) {
+    fprintf(stderr, "%s: %s\n",
+        ddca_rc_name(code),
+        ddca_rc_desc(code)
+    );
+}
+
+/**
+ * adds a display to info array thread save and sorts it
+ */
 static void add_display(Display_Info *new) {
-	/* ensure, that only one thread enters this area*/
+	/* ensure, that only one thread enters this area */
 	pthread_mutex_lock(&lock);
 	
 	int index = displaycount;
@@ -83,29 +93,65 @@ static void add_display(Display_Info *new) {
 
 static DDCA_Display_Info_List *zlist = NULL;
 
+/**
+ * takes a look at every display and adds it to info array if it is able to change brightness
+ */
 static void init_threaded(void *voidref) {
+	DDCA_Status rc = 0;
 	
-	/* convert parameters for thread) */
+	/* convert parameters for thread */
 	Display_Info *parms = voidref;
 
 	/* open display */
 	DDCA_Display_Handle handle;
-	ddca_open_display2(*(parms -> ref), true, &handle);
+	rc = ddca_open_display2(*(parms -> ref), true, &handle);
+	if (rc != 0) {
+	    free(parms);
+	    error(rc);
+	    return;
+	}
 	
 	/* read capabilities */
 	char *capabilities_string;
-	ddca_get_capabilities_string(handle, &capabilities_string);
+	rc = ddca_get_capabilities_string(handle, &capabilities_string);
+	if (rc != 0) {
+	    free(parms);
+	    error(rc);
+	    rc = ddca_close_display(handle);
+	    if (rc != 0) {
+	        error(rc);
+	    }
+	    return;
+	}
 	
 	/* parse capabilities */
 	DDCA_Capabilities* capabilities;
-	ddca_parse_capabilities_string(capabilities_string, &capabilities);
+	rc = ddca_parse_capabilities_string(capabilities_string, &capabilities);
+	if (rc != 0) {
+	    free(parms);
+	    error(rc);
+	    return;
+	}
 	
-	/* check, if Monitor is able to change Brightness exists */
+	/* check, if Monitor is able to change Brightness */
 	DDCA_Feature_List list = ddca_feature_list_from_capabilities(capabilities);
+	ddca_free_parsed_capabilities(capabilities);
 	if (ddca_feature_list_contains(&list, BRIGHTNESS_VCP_CODE)) {
-		/* read current Brightness-Value and permanently store Display_Info */
+	
+		/* read current brightness value and permanently store Display_Info */
 		DDCA_Non_Table_Vcp_Value val;
-		ddca_get_non_table_vcp_value(handle, BRIGHTNESS_VCP_CODE, &val);
+		
+		rc = ddca_get_non_table_vcp_value(handle, BRIGHTNESS_VCP_CODE, &val);
+		if (rc != 0) {
+		    free(parms);
+		    error(rc);
+		    rc = ddca_close_display(handle);
+		    if (rc != 0) {
+		        error(rc);
+		        free(parms);
+		    }
+		    return;
+		}
 		
 		parms -> wanted_brightness = val.sl;
 		
@@ -116,15 +162,21 @@ static void init_threaded(void *voidref) {
 	}
 	
 	/* close display */
-	ddca_close_display(handle);
+	rc = ddca_close_display(handle);
+	if (rc != 0) {
+	    error(rc);
+	}
+	   
 }
-
 
 
 /**
  * thread to set Brightness for one Monitor
  */
 static void set_brightness_thread(void* val){
+    
+    DDCA_Status rc = 0;
+
 	Brightness_Thread *myinfo = val;
 	Display_Info *dinfo = info[myinfo -> dispnum];
 
@@ -136,13 +188,17 @@ static void set_brightness_thread(void* val){
 	DDCA_Display_Handle handle = NULL;
 	
 	/* Set brightness in a loop */
-	while(*cont) {
+	while(*cont && rc == 0) {
 	
 		/* fall asleep when whished brightness is already set */
 		if (dinfo -> wanted_brightness == last_brightness) {
 			/* close display before sleeping */
-			if (handle != NULL)
-				ddca_close_display(handle);
+			if (handle != NULL) {
+				rc = ddca_close_display(handle);
+				if (rc != 0) {
+				    error(rc);
+				}
+			}
 				
 			/* sleep until another thread wakes you up */
 			pthread_mutex_lock(lock);
@@ -153,13 +209,23 @@ static void set_brightness_thread(void* val){
 				break;
 
 			/* open display again, when need to change brightness */
-			ddca_open_display2(*(dinfo -> ref), true, &handle);
+			rc = ddca_open_display2(*(dinfo -> ref), true, &handle);
+			if (rc!= 0) {
+			    error(rc);
+			    break;
+			}
 			
 		}
 		
 		/* Set Brightness Value */
 		last_brightness = dinfo -> wanted_brightness;
-		ddca_set_non_table_vcp_value(handle, BRIGHTNESS_VCP_CODE, 0, last_brightness);
+		rc = ddca_set_non_table_vcp_value(handle, BRIGHTNESS_VCP_CODE, 0, last_brightness);
+		if (rc != 0) {
+		    error(rc);
+		    rc = ddca_close_display(handle);
+		    if (rc != 0)
+		        error (rc);
+		}
 		
 	}
 	
@@ -184,20 +250,23 @@ static void count_displays_and_init_thread(void (*callback)(int))
 		callback(displaycount);
 	
 	} else {
-
+		
 		/* initialize */
 		int status;
 		displaycount = 0;
 
 		/* free old stuff, if any */
 		//free_ddca();
-		if (info != NULL)
+		if (info != NULL) {
 			fprintf(stderr, "WTF\n");
+			return;
+		}
 
 		/* count number of supported displays */
 		if ((status = ddca_get_display_info_list2(false, &zlist)) < 0) {
 			fprintf(stderr, "Error asking for displaylist: %d\n", status);
 			callback(0);
+			return;
 		}
 		
 		int count = zlist -> ct;
@@ -278,21 +347,34 @@ char *get_display_name(int dispnum){
  */
 void get_brightness_percentage_thread(void *storevoid) {
 
+    DDCA_Status rc;
+
 	Brightness_Store *store = storevoid;
 
 	/* Open Display */
 	DDCA_Display_Handle handle;
-	ddca_open_display2(*(info[store -> dispnum] -> ref), true, &handle);
+	rc = ddca_open_display2(*(info[store -> dispnum] -> ref), true, &handle);
+	if (rc!= 0) {
+	    error(rc);
+	} else {
 	
-	/* read out Value */
-	DDCA_Non_Table_Vcp_Value val;
-	ddca_get_non_table_vcp_value(handle, BRIGHTNESS_VCP_CODE, &val);
-	
-	/* Close Display */
-	ddca_close_display(handle);
-	
-	/* calls function in applet.c */
-	store -> callback(val.sl, store -> userdata);
+	    /* read out Value */
+	    DDCA_Non_Table_Vcp_Value val;
+	    rc = ddca_get_non_table_vcp_value(handle, BRIGHTNESS_VCP_CODE, &val);
+	    if (rc != 0) {
+	        error(rc);
+	        val.sl = 0;
+	    }
+	    
+	    /* Close Display */
+	    rc = ddca_close_display(handle);
+	    if (rc!= 0) {
+	        error(rc);
+	    }
+	    
+	    /* calls function in applet.c */
+	    store -> callback(val.sl, store -> userdata);
+	}
 	
 	/* frees store */
 	free(store);
