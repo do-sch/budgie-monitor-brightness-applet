@@ -1,6 +1,6 @@
 # Budgie Monitor Brightness Applet
 
-Control your external Monitors Brightness using the DDC/CI Protocol.
+Control your external monitors brightness using the DDC/CI protocol.
 
 ## Notice
 
