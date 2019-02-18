@@ -87,8 +87,3 @@ sudo ninja install
 - [ ] fallback to xrandr
 
 - [ ] detect connect and disconnect of external monitors
-
-
-
-
-- [ ] 
