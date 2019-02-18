@@ -75,3 +75,23 @@ cd build
 ninja
 sudo ninja install
 ```
+
+## TODO
+
+- [x] support external monitors
+
+- [ ] also support internal displays
+
+- [ ] add translations
+
+- [ ] fallback to xrandr
+
+- [ ] detect connect and disconnect of external monitors
+
+
+
+
+
+
+
+- [ ] 
