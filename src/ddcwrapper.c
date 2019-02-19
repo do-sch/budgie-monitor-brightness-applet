@@ -22,6 +22,10 @@
 
 #define BRIGHTNESS_VCP_CODE 0x10
 
+//#include <stdio.h>
+//static FILE *debug;
+
+
 /* information and references to a monitor */
 typedef struct Display_Info {
 	int dispno;
@@ -56,6 +60,8 @@ static Brightness_Thread **brightness_change_threads = NULL;
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 /* adds thread safety for creating and destroying the whole stuff */
 static pthread_mutex_t freemutex = PTHREAD_MUTEX_INITIALIZER;
+
+static DDCA_Display_Info_List *zlist = NULL;
 
 /* number of displays supporting brightness change */
 static int displaycount = -1;
@@ -93,8 +99,6 @@ static void add_display(Display_Info *new) {
 	pthread_mutex_unlock(&lock);
 }
 
-static DDCA_Display_Info_List *zlist = NULL;
-
 /**
  * takes a look at every display and adds it to info array if it is able to change brightness
  */
@@ -113,54 +117,17 @@ static void init_threaded(void *voidref) {
 	    return;
 	}
 	
-	/* read capabilities */
-	char *capabilities_string;
-	rc = ddca_get_capabilities_string(handle, &capabilities_string);
-	if (rc != 0) {
-	    free(parms);
-	    error(rc);
-	    rc = ddca_close_display(handle);
-	    if (rc != 0) {
-	        error(rc);
-	    }
-	    return;
-	}
-	
-	/* parse capabilities */
-	DDCA_Capabilities* capabilities;
-	rc = ddca_parse_capabilities_string(capabilities_string, &capabilities);
-	if (rc != 0) {
-	    free(parms);
-	    error(rc);
-	    return;
-	}
-	
-	/* check, if Monitor is able to change Brightness */
-	DDCA_Feature_List list = ddca_feature_list_from_capabilities(capabilities);
-	ddca_free_parsed_capabilities(capabilities);
-	if (ddca_feature_list_contains(&list, BRIGHTNESS_VCP_CODE)) {
-	
-		/* read current brightness value and permanently store Display_Info */
-		DDCA_Non_Table_Vcp_Value val;
-		
-		rc = ddca_get_non_table_vcp_value(handle, BRIGHTNESS_VCP_CODE, &val);
-		if (rc != 0) {
-		    free(parms);
-		    error(rc);
-		    rc = ddca_close_display(handle);
-		    if (rc != 0) {
-		        error(rc);
-		        free(parms);
-		    }
-		    return;
-		}
-		
-		parms -> wanted_brightness = val.sl;
-		
-		add_display(parms);
+	/* read current brightness value */
+	DDCA_Non_Table_Vcp_Value val;
+	rc = ddca_get_non_table_vcp_value(handle, BRIGHTNESS_VCP_CODE, &val);
+	if (rc == 0) {
+	    /* permanently add display to infolist */
+	    add_display(parms);
+	    parms -> wanted_brightness = val.sl;
 	} else {
-		/* delete parms, if it is not able, to change Brightness */
-		free(parms);
+	    /* forget thata display, if requesting brightness fails */
+	    free(parms);
+	    error(rc);
 	}
 	
 	/* close display */
@@ -263,15 +230,32 @@ static void count_displays_and_init_thread(void (*callback)(int))
 			fprintf(stderr, "WTF\n");
 			return;
 		}
+		
+		
+		//debug = fopen("/home/dominik/applet_debug.txt", "a+");
+		//ddca_get_display_info_list2(true, &zlist);
+		//fprintf(debug, "count(false): %d\n", zlist -> ct);
+		//for (int i = 0; i < zlist -> ct; i++) {
+		//    DDCA_Display_Info *info = &zlist -> info[i];
+		//    
+		//    fprintf(debug, "name %d: %s\n", i, info -> model_name);
+		//}
+		//ddca_free_display_info_list(zlist);
+		//fprintf(debug, "\n");
+		
 
 		/* count number of supported displays */
-		if ((status = ddca_get_display_info_list2(false, &zlist)) < 0) {
+		if ((status = ddca_get_display_info_list2(true, &zlist)) < 0) {
 			fprintf(stderr, "Error asking for displaylist: %d\n", status);
 			callback(0);
 			return;
 		}
 		
+		
+		
 		int count = zlist -> ct;
+		
+		//fprintf(debug, "count: %d\n", count);
 		
 		/* Start threads. This makes the whole thing faster when using multiple monitors */
 		pthread_t threads[count];	
@@ -321,9 +305,13 @@ static void count_displays_and_init_thread(void (*callback)(int))
 				free_ddca();
 				callback(0);
 			}
+			//fprintf(debug, "name %d: %s\n", i, info[i] -> name);
 		}
 
 		callback(displaycount);
+		
+		//fprintf(debug, "\n\n");
+		//fclose(debug);
 		
 	}
 	pthread_mutex_unlock(&freemutex);
