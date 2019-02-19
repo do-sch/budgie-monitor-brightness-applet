@@ -110,7 +110,7 @@ static void init_threaded(void *voidref) {
 
 	/* open display */
 	DDCA_Display_Handle handle;
-	rc = ddca_open_display2(*(parms -> ref), true, &handle);
+	rc = ddca_open_display2(*parms -> ref, true, &handle);
 	if (rc != 0) {
 	    free(parms);
 	    error(rc);
@@ -207,16 +207,16 @@ static void set_brightness_thread(void* val){
 }
 
 /**
- * initializes ddcci stuff in its own thread and gives back number of displays to callback function
+ * initializes ddcci stuff and gives back the number of compatible displays
  */
-static void count_displays_and_init_thread(void (*callback)(int)) 
+int ddc_count_displays_and_init() 
 {
 	/* you can not free and create stuff at the same time */
 	pthread_mutex_lock(&freemutex);
 	
 	if (displaycount != -1) {
 		/* if already initialized return the displaycount you know */
-		callback(displaycount);
+		return 0;
 	
 	} else {
 		
@@ -228,7 +228,7 @@ static void count_displays_and_init_thread(void (*callback)(int))
 		//free_ddca();
 		if (info != NULL) {
 			fprintf(stderr, "WTF\n");
-			return;
+			return 0;
 		}
 		
 		
@@ -247,8 +247,7 @@ static void count_displays_and_init_thread(void (*callback)(int))
 		/* count number of supported displays */
 		if ((status = ddca_get_display_info_list2(true, &zlist)) < 0) {
 			fprintf(stderr, "Error asking for displaylist: %d\n", status);
-			callback(0);
-			return;
+			return 0;
 		}
 		
 		
@@ -274,7 +273,7 @@ static void count_displays_and_init_thread(void (*callback)(int))
 			if ((status = pthread_create(&threads[i], NULL, (void*)init_threaded, dinfo)) != 0) {
 				fprintf(stderr, "Error creating thread: %d\n", status);
 				free_ddca();
-				callback(0);
+				return 0;
 			}
 			
 		}
@@ -284,7 +283,7 @@ static void count_displays_and_init_thread(void (*callback)(int))
 			if ((status = pthread_join(threads[i], NULL)) != 0) {		
 				fprintf(stderr, "Error joining threads: %d\n", status);
 				free_ddca();
-				callback(0);
+				return 0;
 			}
 		}
 		
@@ -297,53 +296,40 @@ static void count_displays_and_init_thread(void (*callback)(int))
 				pthread_cond_init(&(brightness_change_threads[i] -> cond), NULL)) != 0) {		
 				fprintf(stderr, "Error creating synchronisation puffers: \n");
 				free_ddca();
-				callback(0);
+				return 0;
 			}
 			brightness_change_threads[i] -> cont = true;
 			if ((status = pthread_create(&(brightness_change_threads[i] -> id), NULL, (void*)set_brightness_thread, brightness_change_threads[i])) != 0) {
 				fprintf(stderr, "Error creating thread: %d\n", status);	
 				free_ddca();
-				callback(0);
+				return 0;
 			}
-			//fprintf(debug, "name %d: %s\n", i, info[i] -> name);
 		}
 
-		callback(displaycount);
-		
-		//fprintf(debug, "\n\n");
-		//fclose(debug);
+		return displaycount;
 		
 	}
 	pthread_mutex_unlock(&freemutex);
 }
 
-/**
- * initializes ddcci stuff and gives back the number of compatible displays
- */
-void count_displays_and_init(void (*callback)(int)) {
-	pthread_t id;
-	pthread_create(&id, NULL, (void*) count_displays_and_init_thread, callback);	
-}
 
 /**
  * returns the monitorname of selected display
  */
-char *get_display_name(int dispnum){
+char *ddc_get_display_name(int dispnum){
 	return info[dispnum] -> name;
 }
 
 /**
- * async part of telling brightness
+ * returns brightness of selected display
  */
-void get_brightness_percentage_thread(void *storevoid) {
+int ddc_get_brightness_percentage(int dispnum){
 
     DDCA_Status rc;
 
-	Brightness_Store *store = storevoid;
-
 	/* Open Display */
 	DDCA_Display_Handle handle;
-	rc = ddca_open_display2(*(info[store -> dispnum] -> ref), true, &handle);
+	rc = ddca_open_display2(*info[dispnum] -> ref, true, &handle);
 	if (rc!= 0) {
 	    error(rc);
 	} else {
@@ -362,35 +348,15 @@ void get_brightness_percentage_thread(void *storevoid) {
 	        error(rc);
 	    }
 	    
-	    /* calls function in applet.c */
-	    store -> callback(val.sl, store -> userdata);
+	    return val.sl;
 	}
-	
-	/* frees store */
-	free(store);
-}
-
-/**
- * returns brightness of selected display
- */
-void get_brightness_percentage(int dispnum, void *userdata, void (*callback)(int, void*)){
-
-	/* create store that holds parameters for thread */
-	Brightness_Store *store = malloc(sizeof(Brightness_Store));
-	store -> dispnum = dispnum;
-	store -> userdata = userdata;
-	store -> callback = callback;
-	
-	/* create thread */
-	pthread_t id;
-	pthread_create(&id, NULL, (void *) get_brightness_percentage_thread, store);
 	
 }
 
 /**
  * sets brightness of selected display
  */
-void set_brightness_percentage(int dispnum, int value){
+void ddc_set_brightness_percentage(int dispnum, int value){
 	/* everything has to be initialized first */
 	if (dispnum >= displaycount)
 		return;
@@ -398,7 +364,7 @@ void set_brightness_percentage(int dispnum, int value){
 	info[dispnum] -> wanted_brightness = value;
 	
 	/* wake up the thread, that handles brightness for this monitor */
-	pthread_cond_signal(&(brightness_change_threads[dispnum] -> cond));
+	pthread_cond_signal(&brightness_change_threads[dispnum] -> cond);
 
 }
 
@@ -406,7 +372,7 @@ void set_brightness_percentage(int dispnum, int value){
 /**
  * set brightness for all displays
  */
-void set_brightness_percentage_for_all(int value){
+void ddc_set_brightness_percentage_for_all(int value){
 	/* be save, everything is initialized */
 	if(displaycount < 1)
 		return;

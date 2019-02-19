@@ -17,41 +17,42 @@
  * with this program;  if not, write to the Free Software Foundation, Inc., 
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-
+ 
 #pragma once
 
-#include <ddcutil_c_api.h>
 #include <pthread.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
+#include "ddcwrapper.h"
+
+ 
 /**
- * initializes ddcci stuff and gives back the number of compatible displays to callback function
+ * initializes everything and gives back the number of compatible displays to callback function
  */
-int ddc_count_displays_and_init();
+void count_displays_and_init(void (*callback)(int));
 
 /**
  * returns the monitorname of selected display
  */
-char *ddc_get_display_name(int dispnum);
+char *get_display_name(int dispnum);
 
 /**
  * returns brightness of selected display to callback function
  */
-int ddc_get_brightness_percentage(int dispnum);
+void get_brightness_percentage(int dispnum, void* userdata, void (*callback)(int, void*));
 
 /**
  * sets brightness of selected display
  */
-void ddc_set_brightness_percentage(int dispnum, int value);
+void set_brightness_percentage(int dispnum, int value);
 
 /**
  * set brightness for all displays
  */
-void ddc_set_brightness_percentage_for_all(int value);
+void set_brightness_percentage_for_all(int value);
 
 /**
- * cleans the heap up
+ * everything
  */
-void free_ddca();
-
+void clear_all();
