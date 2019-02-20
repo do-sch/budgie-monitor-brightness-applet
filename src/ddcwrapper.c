@@ -156,7 +156,7 @@ static void set_brightness_thread(void* val){
 	
 	DDCA_Display_Handle handle = NULL;
 	
-	/* Set brightness in a loop */
+	/* set brightness in a loop */
 	while(*cont && rc == 0) {
 	
 		/* fall asleep when whished brightness is already set */
@@ -186,7 +186,7 @@ static void set_brightness_thread(void* val){
 			
 		}
 		
-		/* Set Brightness Value */
+		/* set brightness Value */
 		last_brightness = dinfo -> wanted_brightness;
 		rc = ddca_set_non_table_vcp_value(handle, BRIGHTNESS_VCP_CODE, 0, last_brightness);
 		if (rc != 0) {
@@ -225,7 +225,7 @@ int ddc_count_displays_and_init()
 		displaycount = 0;
 
 		/* free old stuff, if any */
-		//free_ddca();
+		//ddc_free();
 		if (info != NULL) {
 			fprintf(stderr, "WTF\n");
 			return 0;
@@ -272,7 +272,7 @@ int ddc_count_displays_and_init()
 			/* init monitors in separate threads to speed the whole thing up */
 			if ((status = pthread_create(&threads[i], NULL, (void*)init_threaded, dinfo)) != 0) {
 				fprintf(stderr, "Error creating thread: %d\n", status);
-				free_ddca();
+				ddc_free();
 				return 0;
 			}
 			
@@ -282,7 +282,7 @@ int ddc_count_displays_and_init()
 		for (int i = 0; i < count; i++) {
 			if ((status = pthread_join(threads[i], NULL)) != 0) {		
 				fprintf(stderr, "Error joining threads: %d\n", status);
-				free_ddca();
+				ddc_free();
 				return 0;
 			}
 		}
@@ -295,13 +295,13 @@ int ddc_count_displays_and_init()
 			if ((pthread_mutex_init(&(brightness_change_threads[i] -> lock), NULL) || 
 				pthread_cond_init(&(brightness_change_threads[i] -> cond), NULL)) != 0) {		
 				fprintf(stderr, "Error creating synchronisation puffers: \n");
-				free_ddca();
+				ddc_free();
 				return 0;
 			}
 			brightness_change_threads[i] -> cont = true;
 			if ((status = pthread_create(&(brightness_change_threads[i] -> id), NULL, (void*)set_brightness_thread, brightness_change_threads[i])) != 0) {
 				fprintf(stderr, "Error creating thread: %d\n", status);	
-				free_ddca();
+				ddc_free();
 				return 0;
 			}
 		}
@@ -388,7 +388,7 @@ void ddc_set_brightness_percentage_for_all(int value){
 /**
  * cleans the heap up
  */
-void free_ddca(){
+void ddc_free(){
 	pthread_mutex_lock(&freemutex);
 	/* end all threads */
 	for (int i = 0; i < displaycount; i++) {

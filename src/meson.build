@@ -12,8 +12,12 @@ sources = [
 	'applet.c',
 	'plugin.h',
 	'plugin.c',
+	'displaymanager.h',
+	'displaymanager.c',
 	'ddcwrapper.h',
-	'ddcwrapper.c'
+	'ddcwrapper.c',
+	'internaldisplayhandler.h',
+	'internaldisplayhandler.c'
 ]
 
 shared_library(

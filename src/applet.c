@@ -21,7 +21,7 @@
 #define _GNU_SOURCE
 
 #include "applet.h"
-#include "ddcwrapper.h"
+#include "displaymanager.h"
 #include <stdlib.h>
 
 static char tooltip_text[5];
@@ -421,7 +421,7 @@ static void monitor_brightness_applet_class_init(MonitorBrightnessAppletClass *k
  */
 static void monitor_brightness_applet_class_finalize(__budgie_unused__ MonitorBrightnessAppletClass *klazz)
 {
-        free_ddca();
+        clear_all();
 }
  
 void monitor_brightness_applet_init_gtype(GTypeModule *module)

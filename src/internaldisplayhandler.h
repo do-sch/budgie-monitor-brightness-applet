@@ -17,43 +17,32 @@
  * with this program;  if not, write to the Free Software Foundation, Inc., 
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
- 
-#pragma once
 
+#include <gio/gio.h>
 #include <pthread.h>
-#include <stdio.h>
 #include <stdlib.h>
 
-#include "ddcwrapper.h"
-#include "internaldisplayhandler.h"
-
- 
 /**
- * initializes everything and gives back the number of compatible displays to callback function
+ * tells callback function, if there is an internal display
  */
-void count_displays_and_init(void (*callback)(int));
+void internal_init(void (*callback)(int));
 
 /**
- * returns the monitorname of selected display
+ * returns internal brightness to callback function
  */
-char *get_display_name(int dispnum);
+int internal_get_brightness();
 
 /**
- * returns brightness of selected display to callback function
+ * sets internal brightness
  */
-void get_brightness_percentage(int dispnum, void* userdata, void (*callback)(int, void*));
+void internal_set_brightness(int percentage);
 
 /**
- * sets brightness of selected display
+ * sets function to call, if brightness changes
  */
-void set_brightness_percentage(int dispnum, int value);
+void internal_set_on_change_callback(void (*callback)(int));
 
 /**
- * set brightness for all displays
+ * destroys the proxy
  */
-void set_brightness_percentage_for_all(int value);
-
-/**
- * everything
- */
-void clear_all();
+void internal_destroy();

@@ -53,5 +53,5 @@ void ddc_set_brightness_percentage_for_all(int value);
 /**
  * cleans the heap up
  */
-void free_ddca();
+void ddc_free();
 

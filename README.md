@@ -1,10 +1,7 @@
 # Budgie Monitor Brightness Applet
 
-Control your external monitors brightness using the DDC/CI protocol.
+Control your monitors brightness using the DDC/CI protocol.
 
-## Notice
-
-Only external monitors are supported by the applet, no integreated ones such as notebook screens.
 
 ---
 
@@ -22,7 +19,7 @@ libpeas-1.0 >= 1.8.0
 ddcutil >= 0.9.0
 ```
 
-These can be installed on Solus by running:  
+These can be installed on Solus by running:
 
 ```bash
 sudo eopkg it -c system.devel
@@ -80,7 +77,7 @@ sudo ninja install
 
 - [x] support external monitors
 
-- [ ] also support internal displays
+- [x] support internal displays
 
 - [ ] add translations
 
