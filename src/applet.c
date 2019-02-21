@@ -203,42 +203,10 @@ static gboolean create_brightness_popover(gpointer userdata)
 	}
 		
 	count_displays_and_init(update_displaycount);
-	
-	///* Display Settings */
-	//GtkWidget *sep2 = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
-	//GtkWidget *dispsettings = gtk_button_new_with_label("Display Settings");
-	//gtk_button_set_relief(GTK_BUTTON(dispsettings), GTK_RELIEF_NONE);
-	//gtk_widget_set_halign(dispsettings, GTK_ALIGN_START);
-	//GtkStyleContext *context = gtk_widget_get_style_context(dispsettings);
-	//gtk_style_context_add_class(context, "flat");
-	
-	//gtk_box_pack_start(GTK_BOX(mainbox), sep2, FALSE, FALSE, 6);
-	//gtk_box_pack_start(GTK_BOX(mainbox), dispsettings, FALSE, FALSE, 0);
        
         
         return G_SOURCE_REMOVE;
 }
-
-
-// proxy works but ddca_c_api won't allow to reinitialize
-/**
- * Signal from DBus-Proxy, when new Displays where connected or disconnected
- */
-//static gboolean on_monitors_changed(GDBusProxy *proxy, gchar *sender_name, gchar *signal_name, 
-//		GVariant *parameters, gpointer user_data)
-//{
-//
-//	if (strcmp(signal_name, "MonitorsChanged") == 0 && displaycount != -1) {
-//		/* free old stuff, it will be newly created */
-//		displaycount = -1;
-//        	free_ddca();
-//	
-//		/* run in main thread */
-//		gdk_threads_add_idle(create_brightness_popover, (gpointer)1);
-//	}
-//	
-//	return G_SOURCE_REMOVE;
-//}
 
 /**
  * Scroll events
@@ -321,26 +289,6 @@ static void on_press_event(GtkWidget *image, GdkEventButton *buttonevent)
 }
 
 /**
- * connect to Proxy-Signal
- */
-//static void on_proxy_created(GObject *source_object, GAsyncResult *res, gpointer user_data)
-//{
-//	GError *error;
-//	
-//	/* get proxy */
-//	mutter_proxy = g_dbus_proxy_new_for_bus_finish(res, &error);
-//	
-//	if (mutter_proxy == NULL) {
-//		/* print error if one occurs */ 
-//		g_printerr("Error getting proxy client:%s\n", error -> message);
-//		g_error_free(error);
-//	} else {
-//		/* connect to signal if no error occurs */
-//		g_signal_connect(mutter_proxy, "g-signal", G_CALLBACK(on_monitors_changed), NULL);
-//	}
-//}
-
-/**
  * Initialisation of basic UI layout and such
  */
 static void monitor_brightness_applet_init(MonitorBrightnessApplet *self)
@@ -359,20 +307,8 @@ static void monitor_brightness_applet_init(MonitorBrightnessApplet *self)
 	create_brightness_popover(NULL);
         
 	/* Add ebox to applet */
-        gtk_container_add(GTK_CONTAINER(self), ebox);
-        
-        /* creates a DBus-Proxy to catch Signals, telling Displays are connected/disconnected */
-        //g_dbus_proxy_new_for_bus(
-        //	G_BUS_TYPE_SESSION, 
-        //	G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START, 
-        //	NULL,
-        //	"org.gnome.Mutter.DisplayConfig",
-        //	"/org/gnome/Mutter/DisplayConfig",
-        //	"org.gnome.Mutter.DisplayConfig",
-        //	NULL,
-        //	on_proxy_created,
-        //	NULL
-        //);
+    gtk_container_add(GTK_CONTAINER(self), ebox);
+
 
         /* Show all of our things. */
         gtk_widget_show_all(GTK_WIDGET(self));
