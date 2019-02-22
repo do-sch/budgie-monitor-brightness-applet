@@ -351,6 +351,8 @@ int ddc_get_brightness_percentage(int dispnum){
 	    return val.sl;
 	}
 	
+	return -1;
+	
 }
 
 /**

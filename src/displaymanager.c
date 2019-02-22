@@ -38,7 +38,7 @@ static void has_internal_callback(int has)
     pthread_mutex_lock(&internal_ready_mutex);
     has_internal = (has == 1 ? 1 : 0);
     pthread_cond_signal(&internal_ready_cond);
-    pthread_mutex_unlock(&internal_ready_mutex);
+    pthread_mutex_unlock(&internal_ready_mutex);        
 }
 
 /**
@@ -90,7 +90,7 @@ void count_displays_and_init(void (*callback)(int)){
  * returns the monitorname of selected display
  */
 char *get_display_name(int dispnum){
-    if (has_internal) {
+    if (has_internal == 1) {
         /* return "Internal" if there is an internal display */
         if (dispnum == 0)
             return "Internal";
@@ -154,10 +154,36 @@ void get_brightness_percentage(int dispnum, void* userdata, void (*callback)(int
 }
 
 /**
+ * register a scale, so its value can be changed, if brightness gets changed from another place
+ * returns 1 if scale can be registered
+ */
+void register_scale(gpointer scale, int index, void (*callback)(int, void*))
+{
+    if (has_internal == 1) {
+        if (index == 0) {
+            internal_register_scale(scale, callback);
+        } else
+            index--;
+    }
+    
+    /* TODO: also detect brightness change at ddc interface */
+}
+
+/**
+ * tells, if the scale is updated by dbus signal
+ */
+int is_self_updated(int dispnum) 
+{
+    if (has_internal && dispnum == 0)
+        return 1;
+    return 0;
+}
+
+/**
  * sets brightness of selected display
  */
 void set_brightness_percentage(int dispnum, int value){
-    if (has_internal) {
+    if (has_internal == 1) {
         if (dispnum == 0) {
             internal_set_brightness(value);
         } else {
@@ -172,7 +198,7 @@ void set_brightness_percentage(int dispnum, int value){
  * set brightness for all displays
  */
 void set_brightness_percentage_for_all(int value){
-    if (has_internal)
+    if (has_internal == 1)
         internal_set_brightness(value);
     ddc_set_brightness_percentage_for_all(value);
 }
@@ -181,7 +207,7 @@ void set_brightness_percentage_for_all(int value){
  * everything
  */
 void clear_all(){
-    if (has_internal)
+    if (has_internal == 1)
         internal_destroy();
     ddc_free();
 }

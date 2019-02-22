@@ -28,6 +28,8 @@ static char cont = 1;
 static pthread_mutex_t lock;
 static pthread_cond_t cond;
 static GDBusProxy *proxy = NULL;
+static gpointer scale;
+static void (*callback)(int, void*);
 
 /**
  * signal, if brightness is changed
@@ -37,8 +39,6 @@ static void proxy_signal (GDBusProxy *proxy,
 		    GStrv       invalidated_properties,
 		    gpointer    user_data)
 {
-    g_print("proxy_signal\n");
-    void (*callback)(int) = user_data;
     
     GVariant *v;
     GVariantDict dict;
@@ -53,7 +53,7 @@ static void proxy_signal (GDBusProxy *proxy,
         if (v != NULL) {
             val = g_variant_get_int32(v);
             g_variant_unref(v);
-            callback(val);
+            callback(val, scale);
         }
         
     }
@@ -200,9 +200,13 @@ void internal_set_brightness(int percentage)
 /**
  * sets function to call, if brightness changes
  */
-void internal_set_on_change_callback(void (*callback)(int)) 
+void internal_register_scale(gpointer register_scale, void (*register_callback)(int, void*)) 
 {
-    g_signal_connect(proxy, "g-properties-changed", G_CALLBACK(proxy_signal), (void*) callback);
+    if (proxy != NULL) {
+        scale = register_scale;
+        callback = register_callback;
+        g_signal_connect(proxy, "g-properties-changed", G_CALLBACK(proxy_signal), NULL);
+    }
 }
 
 /**

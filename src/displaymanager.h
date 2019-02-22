@@ -44,6 +44,16 @@ char *get_display_name(int dispnum);
 void get_brightness_percentage(int dispnum, void* userdata, void (*callback)(int, void*));
 
 /**
+ * register a scale, so its value can be changed, if brightness gets changed from another place
+ */
+void register_scale(gpointer scale, int index, void (*callback)(int, void*));
+
+/**
+ * tells, if the scale is updated by dbus signal
+ */
+int is_self_updated(int dispnum);
+
+/**
  * sets brightness of selected display
  */
 void set_brightness_percentage(int dispnum, int value);

@@ -40,7 +40,7 @@ void internal_set_brightness(int percentage);
 /**
  * sets function to call, if brightness changes
  */
-void internal_set_on_change_callback(void (*callback)(int));
+void internal_register_scale(gpointer userdata, void (*callback)(int, void*));
 
 /**
  * destroys the proxy

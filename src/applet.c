@@ -45,7 +45,8 @@ static gboolean refresh_range(gpointer user_data)
 	GtkRange *range = store -> range;
 	int value = store -> value;
 	
-	gtk_range_set_value(GTK_RANGE(range), value);
+	if (!gtk_widget_get_visible(popover))
+    	gtk_range_set_value(GTK_RANGE(range), value);
 	
 	/* frees Brightness_Store */
 	g_free(store);
@@ -67,15 +68,16 @@ static void update_brightness(int brightness, void* range){
 /**
  * changes brightness of single monitor
  */
-static void change_brightness(GtkWidget *scale, void *v) 
+static void change_brightness(GtkWidget *scale, GtkScrollType scroll, double value, void *v) 
 {
 	/* convert pointer to long and int to store without need of heap */
 	intptr_t i = (intptr_t)v;
 	
 	/* set brightness of scale */
-	int value = gtk_range_get_value(GTK_RANGE(scale));
-	set_brightness_percentage(i, value);
+	int val = gtk_range_get_value(GTK_RANGE(scale));
+	set_brightness_percentage(i, val);
 }
+
 
 /**
  * creates and adds GtkWidgets that depend on the thread
@@ -112,8 +114,8 @@ static gboolean create_sliders(gpointer user_data)
 			gtk_scale_set_draw_value(GTK_SCALE(scale), FALSE);
 			gtk_widget_set_size_request(scale, 25, 120);
 			
-			/* dirty, but fast + prevents errors with memory management */
-			g_signal_connect(scale, "value-changed", G_CALLBACK(change_brightness), (void*) ((intptr_t)i));
+		    /* dirty, but fast + prevents mistakes with memory management */
+		    g_signal_connect(scale, "change-value", G_CALLBACK(change_brightness), (void*) ((intptr_t)i));
 			
 			/* add label and scale to sliderbox */
 			gtk_box_pack_start(GTK_BOX(sliderboxes[i]), label, FALSE, FALSE, 5);
@@ -121,6 +123,10 @@ static gboolean create_sliders(gpointer user_data)
 			
 			/* add sliderbox to outer sliderbox */
 			gtk_box_pack_start(GTK_BOX(sliderbox), sliderboxes[i], TRUE, FALSE, 5);
+			
+			/* tell displaymanager scale, so value can be connected */
+			register_scale(scale, i, update_brightness);
+
 		}
 	} else {
 		GtkWidget *no_display_label = gtk_label_new("No supported monitors found");
@@ -203,10 +209,42 @@ static gboolean create_brightness_popover(gpointer userdata)
 	}
 		
 	count_displays_and_init(update_displaycount);
+	
+	///* Display Settings */
+	//GtkWidget *sep2 = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+	//GtkWidget *dispsettings = gtk_button_new_with_label("Display Settings");
+	//gtk_button_set_relief(GTK_BUTTON(dispsettings), GTK_RELIEF_NONE);
+	//gtk_widget_set_halign(dispsettings, GTK_ALIGN_START);
+	//GtkStyleContext *context = gtk_widget_get_style_context(dispsettings);
+	//gtk_style_context_add_class(context, "flat");
+	
+	//gtk_box_pack_start(GTK_BOX(mainbox), sep2, FALSE, FALSE, 6);
+	//gtk_box_pack_start(GTK_BOX(mainbox), dispsettings, FALSE, FALSE, 0);
        
         
         return G_SOURCE_REMOVE;
 }
+
+
+// proxy works but ddca_c_api won't allow to reinitialize
+/**
+ * Signal from DBus-Proxy, when new Displays where connected or disconnected
+ */
+//static gboolean on_monitors_changed(GDBusProxy *proxy, gchar *sender_name, gchar *signal_name, 
+//		GVariant *parameters, gpointer user_data)
+//{
+//
+//	if (strcmp(signal_name, "MonitorsChanged") == 0 && displaycount != -1) {
+//		/* free old stuff, it will be newly created */
+//		displaycount = -1;
+//        	free_ddca();
+//	
+//		/* run in main thread */
+//		gdk_threads_add_idle(create_brightness_popover, (gpointer)1);
+//	}
+//	
+//	return G_SOURCE_REMOVE;
+//}
 
 /**
  * Scroll events
@@ -255,7 +293,10 @@ static void on_scroll_event(GtkWidget *image, GdkEventScroll *scroll)
 	
 	/* set new brightness for every scale */
 	for (int i = 0; i < displaycount; i++) {
-		gtk_range_set_value(ranges[i], value);	
+	
+    	if (!is_self_updated(i)) {
+    		gtk_range_set_value(ranges[i], value);	
+		}
 	}
 	
 	/* set value to all screens */
@@ -289,16 +330,36 @@ static void on_press_event(GtkWidget *image, GdkEventButton *buttonevent)
 }
 
 /**
+ * connect to Proxy-Signal
+ */
+//static void on_proxy_created(GObject *source_object, GAsyncResult *res, gpointer user_data)
+//{
+//	GError *error;
+//	
+//	/* get proxy */
+//	mutter_proxy = g_dbus_proxy_new_for_bus_finish(res, &error);
+//	
+//	if (mutter_proxy == NULL) {
+//		/* print error if one occurs */ 
+//		g_printerr("Error getting proxy client:%s\n", error -> message);
+//		g_error_free(error);
+//	} else {
+//		/* connect to signal if no error occurs */
+//		g_signal_connect(mutter_proxy, "g-signal", G_CALLBACK(on_monitors_changed), NULL);
+//	}
+//}
+
+/**
  * Initialisation of basic UI layout and such
  */
 static void monitor_brightness_applet_init(MonitorBrightnessApplet *self)
 {
 	/* Create EventBox with Brightness-Icon */
-        GtkWidget *image = gtk_image_new_from_icon_name("display-brightness-symbolic", GTK_ICON_SIZE_MENU);
-        ebox = gtk_event_box_new();
-        gtk_container_add(GTK_CONTAINER(ebox), image);
-                
-        /* Connect EventBox to its signals */
+    GtkWidget *image = gtk_image_new_from_icon_name("display-brightness-symbolic", GTK_ICON_SIZE_MENU);
+    ebox = gtk_event_box_new();
+    gtk_container_add(GTK_CONTAINER(ebox), image);
+            
+    /* Connect EventBox to its signals */
 	gtk_widget_set_events(ebox, GDK_SCROLL_MASK | GDK_BUTTON_PRESS_MASK);
 	g_signal_connect(ebox, "scroll_event", G_CALLBACK(on_scroll_event), NULL);
 	g_signal_connect(ebox, "button_press_event", G_CALLBACK(on_press_event), NULL);
@@ -309,9 +370,8 @@ static void monitor_brightness_applet_init(MonitorBrightnessApplet *self)
 	/* Add ebox to applet */
     gtk_container_add(GTK_CONTAINER(self), ebox);
 
-
-        /* Show all of our things. */
-        gtk_widget_show_all(GTK_WIDGET(self));
+    /* Show all of our things. */
+    gtk_widget_show_all(GTK_WIDGET(self));
 }
 
 /**
@@ -328,8 +388,8 @@ static void update_popovers(BudgieApplet *self, BudgiePopoverManager *manager)
  */
 static void monitor_brightness_applet_dispose(GObject *object)
 {
-        G_OBJECT_CLASS(monitor_brightness_applet_parent_class)->dispose(object);
-        //g_object_unref(mutter_proxy);
+    G_OBJECT_CLASS(monitor_brightness_applet_parent_class)->dispose(object);
+    //g_object_unref(mutter_proxy);
 }
 
 
@@ -339,15 +399,15 @@ static void monitor_brightness_applet_dispose(GObject *object)
 static void monitor_brightness_applet_class_init(MonitorBrightnessAppletClass *klazz)
 {
         
-        GObjectClass *obj_class = G_OBJECT_CLASS(klazz);
+    GObjectClass *obj_class = G_OBJECT_CLASS(klazz);
 
-        /* gobject vtable hookup */
-        obj_class->dispose = monitor_brightness_applet_dispose;
-        
-        /* override update_popoveres */
-        klazz -> parent_class.update_popovers = update_popovers;
-        
-        //monitor_brightness_applet_parent_class = g_type_class_peek_parent(klazz);
+    /* gobject vtable hookup */
+    obj_class->dispose = monitor_brightness_applet_dispose;
+    
+    /* override update_popoveres */
+    klazz -> parent_class.update_popovers = update_popovers;
+    
+    //monitor_brightness_applet_parent_class = g_type_class_peek_parent(klazz);
         
 }
 
@@ -357,16 +417,16 @@ static void monitor_brightness_applet_class_init(MonitorBrightnessAppletClass *k
  */
 static void monitor_brightness_applet_class_finalize(__budgie_unused__ MonitorBrightnessAppletClass *klazz)
 {
-        clear_all();
+    clear_all();
 }
  
 void monitor_brightness_applet_init_gtype(GTypeModule *module)
 {
-        monitor_brightness_applet_register_type(module);
+    monitor_brightness_applet_register_type(module);
 }
 
 BudgieApplet *monitor_brightness_applet_new(void)
 {
-        return g_object_new(TYPE_MONITOR_BRIGHTNESS_APPLET, NULL);
+    return g_object_new(TYPE_MONITOR_BRIGHTNESS_APPLET, NULL);
 }
 
