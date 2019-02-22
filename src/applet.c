@@ -45,6 +45,7 @@ static gboolean refresh_range(gpointer user_data)
 	GtkRange *range = store -> range;
 	int value = store -> value;
 	
+	/* prevent buggy scale at internal display */
 	if (!gtk_widget_get_visible(popover))
     	gtk_range_set_value(GTK_RANGE(range), value);
 	
@@ -226,26 +227,6 @@ static gboolean create_brightness_popover(gpointer userdata)
 }
 
 
-// proxy works but ddca_c_api won't allow to reinitialize
-/**
- * Signal from DBus-Proxy, when new Displays where connected or disconnected
- */
-//static gboolean on_monitors_changed(GDBusProxy *proxy, gchar *sender_name, gchar *signal_name, 
-//		GVariant *parameters, gpointer user_data)
-//{
-//
-//	if (strcmp(signal_name, "MonitorsChanged") == 0 && displaycount != -1) {
-//		/* free old stuff, it will be newly created */
-//		displaycount = -1;
-//        	free_ddca();
-//	
-//		/* run in main thread */
-//		gdk_threads_add_idle(create_brightness_popover, (gpointer)1);
-//	}
-//	
-//	return G_SOURCE_REMOVE;
-//}
-
 /**
  * Scroll events
  */
@@ -328,26 +309,6 @@ static void on_press_event(GtkWidget *image, GdkEventButton *buttonevent)
 	}
 	
 }
-
-/**
- * connect to Proxy-Signal
- */
-//static void on_proxy_created(GObject *source_object, GAsyncResult *res, gpointer user_data)
-//{
-//	GError *error;
-//	
-//	/* get proxy */
-//	mutter_proxy = g_dbus_proxy_new_for_bus_finish(res, &error);
-//	
-//	if (mutter_proxy == NULL) {
-//		/* print error if one occurs */ 
-//		g_printerr("Error getting proxy client:%s\n", error -> message);
-//		g_error_free(error);
-//	} else {
-//		/* connect to signal if no error occurs */
-//		g_signal_connect(mutter_proxy, "g-signal", G_CALLBACK(on_monitors_changed), NULL);
-//	}
-//}
 
 /**
  * Initialisation of basic UI layout and such
