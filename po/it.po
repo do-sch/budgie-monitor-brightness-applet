@@ -1,0 +1,26 @@
+# Italian translations for budgie-monitor-brightness-applet package.
+# Copyright (C) 2019 THE budgie-monitor-brightness-applet'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the budgie-monitor-brightness-applet package.
+# Automatically generated, 2019.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: budgie-monitor-brightness-applet\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-02-22 20:22+0100\n"
+"PO-Revision-Date: 2019-02-22 20:14+0100\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/applet.c:134
+msgid "No supported monitors found"
+msgstr "Nessun monitor supportato trovato"
+
+#: src/applet.c:187
+msgid "Night Light"
+msgstr "Modalità notturna"

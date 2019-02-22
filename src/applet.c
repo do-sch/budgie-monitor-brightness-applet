@@ -23,6 +23,7 @@
 #include "applet.h"
 #include "displaymanager.h"
 #include <stdlib.h>
+#include <glib/gi18n-lib.h>
 
 static char tooltip_text[5];
 static int displaycount = 0;
@@ -130,7 +131,7 @@ static gboolean create_sliders(gpointer user_data)
 
 		}
 	} else {
-		GtkWidget *no_display_label = gtk_label_new("No supported monitors found");
+		GtkWidget *no_display_label = gtk_label_new(_("No supported monitors found"));
 		gtk_box_pack_start(GTK_BOX(sliderbox), no_display_label, FALSE, FALSE, 5);
 	}
 	
@@ -183,7 +184,7 @@ static gboolean create_brightness_popover(gpointer userdata)
 		/* Night Light */
 		nightlightbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 		
-		nightlightlabel = gtk_label_new("Night Light");
+		nightlightlabel = gtk_label_new(_("Night Light"));
 		gtk_widget_set_hexpand_set(nightlightlabel, TRUE);
 		
 		nightlightswitch = gtk_switch_new();
