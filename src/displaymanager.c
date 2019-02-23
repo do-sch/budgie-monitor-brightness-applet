@@ -17,7 +17,11 @@
  * with this program;  if not, write to the Free Software Foundation, Inc., 
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
- 
+
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "displaymanager.h"
 
 typedef struct Brightness_Userdata {
@@ -44,7 +48,8 @@ static void has_internal_callback(int has)
 /**
  * async part of initializing
  */
-static void count_displays_and_init_thread(void (*callback)(int)){
+static void count_displays_and_init_thread(void (*callback)(int))
+{
     /* initialize stuff */
     int displaycount = 0;
     if (pthread_mutex_init(&internal_ready_mutex, NULL) != 0) {
@@ -76,7 +81,8 @@ static void count_displays_and_init_thread(void (*callback)(int)){
 /**
  * initializes everything and gives back the number of compatible displays to callback function
  */
-void count_displays_and_init(void (*callback)(int)){
+void count_displays_and_init(void (*callback)(int))
+{
     pthread_t id;
     int status;
     
@@ -89,7 +95,8 @@ void count_displays_and_init(void (*callback)(int)){
 /**
  * returns the monitorname of selected display
  */
-char *get_display_name(int dispnum){
+char *get_display_name(int dispnum)
+{
     if (has_internal == 1) {
         /* return "Internal" if there is an internal display */
         if (dispnum == 0)
@@ -105,7 +112,8 @@ char *get_display_name(int dispnum){
 /**
  * async part of getting brightness
  */
-static void get_brightness_percentage_thread(void *userdata){
+static void get_brightness_percentage_thread(void *userdata)
+{
     /* unpack userdata for getting percentage */
     Brightness_Userdata *data = userdata;
     
@@ -127,7 +135,8 @@ static void get_brightness_percentage_thread(void *userdata){
 /**
  * returns brightness of selected display to callback function
  */
-void get_brightness_percentage(int dispnum, void* userdata, void (*callback)(int, void*)){
+void get_brightness_percentage(int dispnum, void* userdata, void (*callback)(int, void*))
+{
     /* change internal brightness and sub dispnum to fit ddc dispnum */
     if (has_internal) {
         if (dispnum == 0) {
@@ -157,7 +166,7 @@ void get_brightness_percentage(int dispnum, void* userdata, void (*callback)(int
  * register a scale, so its value can be changed, if brightness gets changed from another place
  * returns 1 if scale can be registered
  */
-void register_scale(gpointer scale, int index, void (*callback)(int, void*))
+void register_scale(void *scale, int index, void (*callback)(int, void*))
 {
     if (has_internal == 1) {
         if (index == 0) {
@@ -182,7 +191,8 @@ int is_self_updated(int dispnum)
 /**
  * sets brightness of selected display
  */
-void set_brightness_percentage(int dispnum, int value){
+void set_brightness_percentage(int dispnum, int value)
+{
     if (has_internal == 1) {
         if (dispnum == 0) {
             internal_set_brightness(value);
@@ -197,7 +207,8 @@ void set_brightness_percentage(int dispnum, int value){
 /**
  * set brightness for all displays
  */
-void set_brightness_percentage_for_all(int value){
+void set_brightness_percentage_for_all(int value)
+{
     if (has_internal == 1)
         internal_set_brightness(value);
     ddc_set_brightness_percentage_for_all(value);
@@ -206,7 +217,8 @@ void set_brightness_percentage_for_all(int value){
 /**
  * everything
  */
-void clear_all(){
+void clear_all()
+{
     if (has_internal == 1)
         internal_destroy();
     ddc_free();

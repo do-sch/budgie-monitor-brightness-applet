@@ -20,11 +20,6 @@
 
 #pragma once
 
-#include <ddcutil_c_api.h>
-#include <pthread.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 /**
  * initializes ddcci stuff and gives back the number of compatible displays to callback function
  */

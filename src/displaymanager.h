@@ -20,14 +20,10 @@
  
 #pragma once
 
-#include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "ddcwrapper.h"
 #include "internaldisplayhandler.h"
 
- 
+
 /**
  * initializes everything and gives back the number of compatible displays to callback function
  */
@@ -41,12 +37,12 @@ char *get_display_name(int dispnum);
 /**
  * returns brightness of selected display to callback function
  */
-void get_brightness_percentage(int dispnum, void* userdata, void (*callback)(int, void*));
+void get_brightness_percentage(int dispnum, void *userdata, void (*callback)(int, void*));
 
 /**
  * register a scale, so its value can be changed, if brightness gets changed from another place
  */
-void register_scale(gpointer scale, int index, void (*callback)(int, void*));
+void register_scale(void *scale, int index, void (*callback)(int, void*));
 
 /**
  * tells, if the scale is updated by dbus signal

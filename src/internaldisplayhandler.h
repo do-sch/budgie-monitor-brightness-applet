@@ -18,10 +18,6 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#include <gio/gio.h>
-#include <pthread.h>
-#include <stdlib.h>
-
 /**
  * tells callback function, if there is an internal display
  */
@@ -40,7 +36,7 @@ void internal_set_brightness(int percentage);
 /**
  * sets function to call, if brightness changes
  */
-void internal_register_scale(gpointer userdata, void (*callback)(int, void*));
+void internal_register_scale(void* userdata, void (*callback)(int, void*));
 
 /**
  * destroys the proxy

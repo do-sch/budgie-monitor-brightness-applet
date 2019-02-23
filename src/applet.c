@@ -35,8 +35,6 @@ typedef struct Brightness_Store{
 	int value;
 } Brightness_Store;
 
-//static GDBusProxy *mutter_proxy;
-
 G_DEFINE_DYNAMIC_TYPE_EXTENDED(MonitorBrightnessApplet, monitor_brightness_applet, BUDGIE_TYPE_APPLET, 0, )
 
 static gboolean refresh_range(gpointer user_data)
@@ -56,8 +54,8 @@ static gboolean refresh_range(gpointer user_data)
 	return G_SOURCE_REMOVE;
 }
 
-static void update_brightness(int brightness, void* range){
-	
+static void update_brightness(int brightness, void* range)
+{
 	/* store values for main-loop-thread */
 	Brightness_Store *store = g_malloc(sizeof(Brightness_Store));
 	store -> range = range;
@@ -351,7 +349,8 @@ static void update_popovers(BudgieApplet *self, BudgiePopoverManager *manager)
 static void monitor_brightness_applet_dispose(GObject *object)
 {
     G_OBJECT_CLASS(monitor_brightness_applet_parent_class)->dispose(object);
-    //g_object_unref(mutter_proxy);
+    /* this should clear everything from the heap */
+    clear_all();
 }
 
 
@@ -359,8 +358,7 @@ static void monitor_brightness_applet_dispose(GObject *object)
  * Class initialisation
  */
 static void monitor_brightness_applet_class_init(MonitorBrightnessAppletClass *klazz)
-{
-        
+{        
     GObjectClass *obj_class = G_OBJECT_CLASS(klazz);
 
     /* gobject vtable hookup */
@@ -379,7 +377,6 @@ static void monitor_brightness_applet_class_init(MonitorBrightnessAppletClass *k
  */
 static void monitor_brightness_applet_class_finalize(__budgie_unused__ MonitorBrightnessAppletClass *klazz)
 {
-    clear_all();
 }
  
 void monitor_brightness_applet_init_gtype(GTypeModule *module)

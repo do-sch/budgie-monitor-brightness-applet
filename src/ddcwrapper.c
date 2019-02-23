@@ -18,6 +18,11 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+#include <ddcutil_c_api.h>
+#include <pthread.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 #include "ddcwrapper.h"
 
 #define BRIGHTNESS_VCP_CODE 0x10
@@ -67,11 +72,13 @@ static DDCA_Display_Info_List *zlist = NULL;
 static int displaycount = -1;
 
 /* compare-function for quicksort */
-static int cmp(const void* a, const void* b) {
+static int cmp(const void* a, const void* b) 
+{
 	return ((*(Display_Info**) a) -> dispno) - ((*(Display_Info**) b) -> dispno);
 }
 
-static void error(DDCA_Status code) {
+static void error(DDCA_Status code) 
+{
     fprintf(stderr, "%s: %s\n",
         ddca_rc_name(code),
         ddca_rc_desc(code)
@@ -81,7 +88,8 @@ static void error(DDCA_Status code) {
 /**
  * adds a display to info array thread save and sorts it
  */
-static void add_display(Display_Info *new) {
+static void add_display(Display_Info *new) 
+{
 	/* ensure, that only one thread enters this area */
 	pthread_mutex_lock(&lock);
 	
@@ -102,7 +110,8 @@ static void add_display(Display_Info *new) {
 /**
  * takes a look at every display and adds it to info array if it is able to change brightness
  */
-static void init_threaded(void *voidref) {
+static void init_threaded(void *voidref) 
+{
 	DDCA_Status rc = 0;
 	
 	/* convert parameters for thread */
@@ -142,7 +151,8 @@ static void init_threaded(void *voidref) {
 /**
  * thread to set Brightness for one Monitor
  */
-static void set_brightness_thread(void* val){
+static void set_brightness_thread(void* val)
+{
     
     DDCA_Status rc = 0;
 
@@ -181,7 +191,6 @@ static void set_brightness_thread(void* val){
 			rc = ddca_open_display2(*(dinfo -> ref), true, &handle);
 			if (rc!= 0) {
 			    error(rc);
-			    break;
 			}
 			
 		}
@@ -197,13 +206,17 @@ static void set_brightness_thread(void* val){
 		}
 		
 	}
-	
-	/* destroy mutex and conditional */	
-	pthread_mutex_destroy(lock);
-	pthread_cond_destroy(cond);
-	
-	/* free thread struct */
-	free(myinfo);
+}
+
+/**
+ * prints error message
+ */
+static int error_initialization(char *message, int status)
+{
+    pthread_mutex_unlock(&freemutex);
+    ddc_free();
+    fprintf(stderr, message, status);
+    return 0;
 }
 
 /**
@@ -216,7 +229,8 @@ int ddc_count_displays_and_init()
 	
 	if (displaycount != -1) {
 		/* if already initialized return the displaycount you know */
-		return 0;
+		pthread_mutex_unlock(&freemutex);
+		return displaycount;
 	
 	} else {
 		
@@ -227,8 +241,7 @@ int ddc_count_displays_and_init()
 		/* free old stuff, if any */
 		//ddc_free();
 		if (info != NULL) {
-			fprintf(stderr, "WTF\n");
-			return 0;
+		    return error_initialization("info is NULL", 0);
 		}
 		
 		
@@ -246,8 +259,7 @@ int ddc_count_displays_and_init()
 
 		/* count number of supported displays */
 		if ((status = ddca_get_display_info_list2(true, &zlist)) < 0) {
-			fprintf(stderr, "Error asking for displaylist: %d\n", status);
-			return 0;
+			return error_initialization("Error asking for displaylist: %d\n", status);
 		}
 		
 		
@@ -271,9 +283,7 @@ int ddc_count_displays_and_init()
 			
 			/* init monitors in separate threads to speed the whole thing up */
 			if ((status = pthread_create(&threads[i], NULL, (void*)init_threaded, dinfo)) != 0) {
-				fprintf(stderr, "Error creating thread: %d\n", status);
-				ddc_free();
-				return 0;
+				return error_initialization("Error creating thread: %d\n", status);
 			}
 			
 		}
@@ -281,9 +291,7 @@ int ddc_count_displays_and_init()
 		/* wait for all threads */
 		for (int i = 0; i < count; i++) {
 			if ((status = pthread_join(threads[i], NULL)) != 0) {		
-				fprintf(stderr, "Error joining threads: %d\n", status);
-				ddc_free();
-				return 0;
+				return error_initialization("Error joining threads: %d\n", status);
 			}
 		}
 		
@@ -294,36 +302,34 @@ int ddc_count_displays_and_init()
 			brightness_change_threads[i] -> dispnum = i;
 			if ((pthread_mutex_init(&(brightness_change_threads[i] -> lock), NULL) || 
 				pthread_cond_init(&(brightness_change_threads[i] -> cond), NULL)) != 0) {		
-				fprintf(stderr, "Error creating synchronisation puffers: \n");
-				ddc_free();
-				return 0;
+				return error_initialization("Error creating synchronisation puffers: \n", 0);
 			}
 			brightness_change_threads[i] -> cont = true;
 			if ((status = pthread_create(&(brightness_change_threads[i] -> id), NULL, (void*)set_brightness_thread, brightness_change_threads[i])) != 0) {
-				fprintf(stderr, "Error creating thread: %d\n", status);	
-				ddc_free();
-				return 0;
+				return error_initialization("Error creating thread: %d\n", status);	
 			}
 		}
 
+    	pthread_mutex_unlock(&freemutex);
 		return displaycount;
 		
 	}
-	pthread_mutex_unlock(&freemutex);
 }
 
 
 /**
  * returns the monitorname of selected display
  */
-char *ddc_get_display_name(int dispnum){
+char *ddc_get_display_name(int dispnum)
+{
 	return info[dispnum] -> name;
 }
 
 /**
  * returns brightness of selected display
  */
-int ddc_get_brightness_percentage(int dispnum){
+int ddc_get_brightness_percentage(int dispnum)
+{
 
     DDCA_Status rc;
 
@@ -358,7 +364,8 @@ int ddc_get_brightness_percentage(int dispnum){
 /**
  * sets brightness of selected display
  */
-void ddc_set_brightness_percentage(int dispnum, int value){
+void ddc_set_brightness_percentage(int dispnum, int value)
+{
 	/* everything has to be initialized first */
 	if (dispnum >= displaycount)
 		return;
@@ -374,7 +381,8 @@ void ddc_set_brightness_percentage(int dispnum, int value){
 /**
  * set brightness for all displays
  */
-void ddc_set_brightness_percentage_for_all(int value){
+void ddc_set_brightness_percentage_for_all(int value)
+{
 	/* be save, everything is initialized */
 	if(displaycount < 1)
 		return;
@@ -390,13 +398,21 @@ void ddc_set_brightness_percentage_for_all(int value){
 /**
  * cleans the heap up
  */
-void ddc_free(){
+void ddc_free()
+{
 	pthread_mutex_lock(&freemutex);
+	
 	/* end all threads */
 	for (int i = 0; i < displaycount; i++) {
 		brightness_change_threads[i] -> cont = false;
 		pthread_cond_signal(&brightness_change_threads[i] -> cond);
 		pthread_join(brightness_change_threads[i] -> id, NULL);
+
+		/* destroy mutex and conditional */	
+	    pthread_mutex_destroy(&brightness_change_threads[i] -> lock);
+    	pthread_cond_destroy(&brightness_change_threads[i] -> cond);
+    	free(brightness_change_threads[i]);
+    	
 	}
 	
 	/* free thread-array, the single structures are freed in the thread itself */
@@ -414,6 +430,7 @@ void ddc_free(){
 	
 	/* free ddc_display_info_list */
 	ddca_free_display_info_list(zlist);
-	displaycount = 0;
+	displaycount = -1;
+	
 	pthread_mutex_unlock(&freemutex);
 }
