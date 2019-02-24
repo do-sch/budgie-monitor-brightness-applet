@@ -27,6 +27,7 @@
 #define PROPERTYNAME "Brightness"
 
 static int wished_brightness = -1;
+static int do_emit_signal = 1;
 /* if this thread is false, all threads end, as soon as they wake up */
 static char cont = 1;
 static pthread_mutex_t lock;
@@ -56,8 +57,12 @@ static void proxy_signal (GDBusProxy *proxy,
         
         if (v != NULL) {
             val = g_variant_get_int32(v);
-            g_variant_unref(v);
-            callback(val, scale);
+            g_variant_unref(v); 
+            
+            /* prevents bugs because of double set */
+            if (val != wished_brightness && do_emit_signal) {
+                callback(val, scale);
+            }
         }
         
     }
@@ -76,7 +81,7 @@ static void set_brightness_thread(void *val)
     while (cont) {
         
         /* fall asleep when wished brightness is already set */
-        if (wished_brightness == last_brightness) {
+        while (wished_brightness == last_brightness) {
             pthread_mutex_lock(&lock);
             pthread_cond_wait(&cond, &lock);
             pthread_mutex_unlock(&lock);
@@ -102,6 +107,8 @@ static void set_brightness_thread(void *val)
                 g_print("Proxy call error: %s\n", error -> message);
                 g_error_free(error);
             }
+            
+            do_emit_signal = 1;
         } else {
             break;
         }
@@ -179,13 +186,14 @@ int internal_get_brightness()
 {
     GVariant *var;
     int value = -1;
-        
-    var = g_dbus_proxy_get_cached_property(G_DBUS_PROXY(proxy), PROPERTYNAME);
-    if (var != NULL) {
-        value = g_variant_get_int32(var);
-        g_variant_unref(var);
-    }
     
+    if (proxy != NULL) {
+        var = g_dbus_proxy_get_cached_property(G_DBUS_PROXY(proxy), PROPERTYNAME);
+        if (var != NULL) {
+            value = g_variant_get_int32(var);
+            g_variant_unref(var);
+        }
+    }
     return value;
 }
 
@@ -195,8 +203,13 @@ int internal_get_brightness()
  */
 void internal_set_brightness(int percentage) 
 {
-    if (proxy != NULL) {
+    if (percentage < 100) {
+        percentage++;
+    }
+    /* it seems, as if proxy tells brightness one to low */
+    if (proxy != NULL && percentage != wished_brightness) {
         wished_brightness = percentage;
+        do_emit_signal = 0;
         pthread_cond_signal(&cond);
     }  
 }

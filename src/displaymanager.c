@@ -126,7 +126,10 @@ static void get_brightness_percentage_thread(void *userdata)
     /* call ddc function and call its return value back to callback */
     int percentage;
     
-    percentage = ddc_get_brightness_percentage(dispnum);
+    if (has_internal && dispnum == 0)
+        percentage = internal_get_brightness();
+    else
+        percentage = ddc_get_brightness_percentage(dispnum);
     
     callback(percentage, old_userdata);
     
@@ -137,20 +140,14 @@ static void get_brightness_percentage_thread(void *userdata)
  */
 void get_brightness_percentage(int dispnum, void* userdata, void (*callback)(int, void*))
 {
-    /* change internal brightness and sub dispnum to fit ddc dispnum */
-    if (has_internal) {
-        if (dispnum == 0) {
-            callback(internal_get_brightness(), userdata);
-            return;
-        } else {
-            dispnum -= 1;
-        }
-    }
-
     /* user data for brightness threads */
     Brightness_Userdata *data = malloc(sizeof(Brightness_Userdata));
     int status;
     pthread_t id;
+    
+    if (has_internal && dispnum != 0) {
+        dispnum--;
+    }
     
     data -> dispnum = dispnum;
     data -> old_userdata = userdata;
@@ -196,11 +193,13 @@ void set_brightness_percentage(int dispnum, int value)
     if (has_internal == 1) {
         if (dispnum == 0) {
             internal_set_brightness(value);
+            return;
         } else {
             dispnum--;
         }
     }
     ddc_set_brightness_percentage(dispnum, value);
+    
    
 }
 

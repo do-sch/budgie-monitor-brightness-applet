@@ -44,9 +44,7 @@ static gboolean refresh_range(gpointer user_data)
 	GtkRange *range = store -> range;
 	int value = store -> value;
 	
-	/* prevent buggy scale at internal display */
-	if (!gtk_widget_get_visible(popover))
-    	gtk_range_set_value(GTK_RANGE(range), value);
+	gtk_range_set_value(GTK_RANGE(range), value);
 	
 	/* frees Brightness_Store */
 	g_free(store);
@@ -65,17 +63,25 @@ static void update_brightness(int brightness, void* range)
 	gdk_threads_add_idle(refresh_range, store);
 }
 
+static void update_brightness_from_proxy_signal(int brightness, void *range) {
+    if (!gtk_widget_get_visible(popover))
+        update_brightness(brightness, range);
+        
+}
+
 /**
  * changes brightness of single monitor
  */
-static void change_brightness(GtkWidget *scale, GtkScrollType scroll, double value, void *v) 
+static void change_brightness(GtkWidget *scale, void *v) 
 {
 	/* convert pointer to long and int to store without need of heap */
 	intptr_t i = (intptr_t)v;
 	
 	/* set brightness of scale */
 	int val = gtk_range_get_value(GTK_RANGE(scale));
-	set_brightness_percentage(i, val);
+	/* prevents double emitting signals  */
+	if (gtk_widget_get_visible(popover))
+	    set_brightness_percentage(i, val);
 }
 
 
@@ -115,7 +121,7 @@ static gboolean create_sliders(gpointer user_data)
 			gtk_widget_set_size_request(scale, 25, 120);
 			
 		    /* dirty, but fast + prevents mistakes with memory management */
-		    g_signal_connect(scale, "change-value", G_CALLBACK(change_brightness), (void*) ((intptr_t)i));
+		    g_signal_connect(scale, "value-changed", G_CALLBACK(change_brightness), (void*) ((intptr_t)i));
 			
 			/* add label and scale to sliderbox */
 			gtk_box_pack_start(GTK_BOX(sliderboxes[i]), label, FALSE, FALSE, 5);
@@ -125,7 +131,7 @@ static gboolean create_sliders(gpointer user_data)
 			gtk_box_pack_start(GTK_BOX(sliderbox), sliderboxes[i], TRUE, FALSE, 5);
 			
 			/* tell displaymanager scale, so value can be connected */
-			register_scale(scale, i, update_brightness);
+			register_scale(scale, i, update_brightness_from_proxy_signal);
 
 		}
 	} else {
@@ -273,10 +279,7 @@ static void on_scroll_event(GtkWidget *image, GdkEventScroll *scroll)
 	
 	/* set new brightness for every scale */
 	for (int i = 0; i < displaycount; i++) {
-	
-    	if (!is_self_updated(i)) {
-    		gtk_range_set_value(ranges[i], value);	
-		}
+		gtk_range_set_value(ranges[i], value);
 	}
 	
 	/* set value to all screens */
