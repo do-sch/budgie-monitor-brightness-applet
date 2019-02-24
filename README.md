@@ -79,8 +79,6 @@ sudo ninja install
 
 - [x] support internal displays
 
-- [ ] add translations
-
-- [ ] fallback to xrandr
+- [x] add translations
 
 - [ ] detect connect and disconnect of external monitors
