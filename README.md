@@ -2,7 +2,6 @@
 
 Control your monitors brightness using the DDC/CI protocol.
 
-
 ---
 
 ![Screenshot](data/screenshot.png)
@@ -12,10 +11,7 @@ Control your monitors brightness using the DDC/CI protocol.
 ## Dependencies
 
 ```
-gtk+-3.0 >= 3.18
 budgie-1.0 >= 2
-glib-2.0 >= 2.46.0
-libpeas-1.0 >= 1.8.0
 ddcutil >= 0.9.0
 ```
 
@@ -26,9 +22,9 @@ sudo eopkg it -c system.devel
 sudo eopkg it budgie-desktop-devel ddcutil-devel
 ```
 
-## Configuration on Solus
+## Test, if your hardware is capable of DDC/CI (internal monitors won't need this)
 
-Before you are able use budgie-monitor-brightness-applet, you have to configure [ddcutil](https://www.ddcutil.com/) and check, if your hardware is capable of DDC/CI:
+Use [ddcutil](https://www.ddcutil.com/) to check, if your hardware is capable of DDC/CI:
 
 The i2c_dev module has to be active:
 
@@ -36,7 +32,7 @@ The i2c_dev module has to be active:
 sudo modprobe i2c_dev
 ```
 
-Test, if your monitor is capable of DDC/CI (you may have to enable a feature called DDC/CI in your monitor OSD settings):
+Test, if your monitor is capable of DDC/CI (you may have to enable a feature called DDC/CI in your monitor OSD):
 
 ```bash
 sudo ddcutil detect
@@ -45,18 +41,50 @@ sudo ddcutil detect
 Here an overview of your connected monitors has to be shown, otherwise the budgie-monitor-brightness-applet won't work.
 If you are using a Nvidia graphics card and the output gives you error messages like "Invalid display" and "DDC communication failed" for your monitor, you may need another [workaround](https://www.ddcutil.com/nvidia/).
 
-Next step is to add a group that gains permissions to access the I²C interfaces and add your user to that group:
+
+
+On Solus this issue can be fixed by running
+
+```bash
+echo 'nvidia.NVreg_RegistryDwords=RMUseSwI2c=0x01 nvidia.RMI2cSpeed=100' | sudo tee /etc/kernel/cmdline.d/90_nvidia.conf
+sudo clr-boot-manager update # reboot after this
+```
+
+## Building and Installation
+
+```bash
+meson --prefix=/usr --buildtype=plain build
+cd build
+ninja
+sudo ninja install
+```
+
+Finally reboot
+
+
+
+## Manual configuration
+
+Meson automatically sets udev rules to give everyone RW access to the /dev/i2c devices and sets the kernel-module **i2c_dev** to be loaded on every startup. If you want to configure this yourself manually, you can pass the parameters **-Dset_udev_configuration=false** and **-Dset_kernel_module_configuration=false** to meson. This could be useful, if you want to add a special group that gains access to your i2c devices. More information at  [https://www.ddcutil.com/config/](https://www.ddcutil.com/config/)
+
+
+
+### Manual configuration of udev
+
+Add a group that gains permissions to access the I²C interfaces and add your user to that group:
 
 ```bash
 sudo groupadd --system i2c
 sudo usermod $USER -aG i2c
 ```
 
-Ddcutil comes with an udev rule that gives the group i2c permissions to the i2c interfaces. This one has to be copied to /etc/udev/rules.d
+ddcutil comes with an udev rule that gives the group i2c RW permissions to the i2c interfaces. This one has to be copied to /etc/udev/rules.d
 
 ```bash
 sudo cp /usr/share/ddcutil/data/45-ddcutils-i2c.rules /etc/udev/rules.d
 ```
+
+### Manual configuration of kernel module
 
 The module **i2c_dev** has to be loaded on every startup:
 
@@ -66,14 +94,7 @@ sudo sh -c "echo i2c_dev > /etc/modules-load.d/i2c-dev.conf"
 
 Finally reboot
 
-## Building and Installation
 
-```bash
-meson --prefix /usr --buildtype=plain build
-cd build
-ninja
-sudo ninja install
-```
 
 ## TODO
 

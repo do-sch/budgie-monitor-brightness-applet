@@ -1,0 +1,4 @@
+# On some distributions, package i2c-tools already provides a udev rule. 
+
+# Gives everyone RW access to the /dev/i2c devices: 
+KERNEL=="i2c-[0-9]*",  MODE="0666"
