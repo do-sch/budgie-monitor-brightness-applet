@@ -245,7 +245,7 @@ int ddc_count_displays_and_init()
 		}
 		
 		
-		//debug = fopen("/home/dominik/applet_debug.txt", "a+");
+		//debug = fopen("/tmp/applet_debug.txt", "a+");
 		//ddca_get_display_info_list2(true, &zlist);
 		//fprintf(debug, "count(false): %d\n", zlist -> ct);
 		//for (int i = 0; i < zlist -> ct; i++) {
@@ -256,13 +256,16 @@ int ddc_count_displays_and_init()
 		//ddca_free_display_info_list(zlist);
 		//fprintf(debug, "\n");
 		
+		/* higher up ddc retries to ensure every monitor will be found */
+		if ((status = ddca_set_max_tries(DDCA_MULTI_PART_TRIES, 15)) < 0) {
+			return error_initialization("Error setting retries: %d\n", status);
+		}
 
 		/* count number of supported displays */
 		if ((status = ddca_get_display_info_list2(true, &zlist)) < 0) {
 			return error_initialization("Error asking for displaylist: %d\n", status);
 		}
-		
-		
+				
 		
 		int count = zlist -> ct;
 		
