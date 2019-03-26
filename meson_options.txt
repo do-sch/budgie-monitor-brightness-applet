@@ -1,0 +1,2 @@
+option('set_udev_configuration', type : 'boolean')
+option('set_kernel_module_configuration', type : 'boolean')
