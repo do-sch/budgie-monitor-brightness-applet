@@ -62,7 +62,7 @@ sudo clr-boot-manager update # reboot after this
 
 ## Manual configuration
 
-Meson automatically sets udev rules to give everyone RW access to the /dev/i2c devices and sets the kernel-module **i2c_dev** to be loaded on every startup. If you want to configure this yourself manually, you can pass the parameters **-Dset_udev_configuration=false** and **-Dset_kernel_module_configuration=false** to meson. This could be useful, if you want to add a special group that gains access to your i2c devices. More information at  [https://www.ddcutil.com/config/](https://www.ddcutil.com/config/)
+The build script automatically sets udev rules to give everyone RW access to the /dev/i2c devices and sets the kernel-module **i2c_dev** to be loaded on every startup. If you want to configure this yourself manually, you can pass the parameters **-Dset_udev_configuration=false** and **-Dset_kernel_module_configuration=false** to meson. This could be useful, if you want to add a special group that gains access to your i2c devices. More information at  [https://www.ddcutil.com/config/](https://www.ddcutil.com/config/)
 
 
 
