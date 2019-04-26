@@ -39,7 +39,7 @@ Finally logout and login again
 
 ## Troubleshooting for external monitors
 
-Test, if your monitor is capable of DDC/CI
+Test, if your monitor is capable of DDC/CI.
 
 Use [ddcutil](https://www.ddcutil.com/) to check, if your hardware is capable of DDC/CI:
 
