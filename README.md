@@ -13,6 +13,7 @@ Control your monitors brightness using the DDC/CI protocol.
 ```
 budgie-1.0 >= 2
 ddcutil >= 0.9.0
+udev
 ```
 
 These can be installed on Solus by running:
@@ -22,33 +23,6 @@ sudo eopkg it -c system.devel
 sudo eopkg it budgie-desktop-devel ddcutil-devel
 ```
 
-## Test, if your hardware is capable of DDC/CI (internal monitors won't need this)
-
-Use [ddcutil](https://www.ddcutil.com/) to check, if your hardware is capable of DDC/CI:
-
-The i2c_dev module has to be active:
-
-```bash
-sudo modprobe i2c_dev
-```
-
-Test, if your monitor is capable of DDC/CI (you may have to enable a feature called DDC/CI in your monitor OSD):
-
-```bash
-sudo ddcutil detect
-```
-
-Here an overview of your connected monitors has to be shown, otherwise the budgie-monitor-brightness-applet won't work.
-If you are using a Nvidia graphics card and the output gives you error messages like "Invalid display" and "DDC communication failed" for your monitor, you may need another [workaround](https://www.ddcutil.com/nvidia/).
-
-
-
-On Solus this issue can be fixed by running
-
-```bash
-echo 'nvidia.NVreg_RegistryDwords=RMUseSwI2c=0x01 nvidia.RMI2cSpeed=100' | sudo tee /etc/kernel/cmdline.d/90_nvidia.conf
-sudo clr-boot-manager update # reboot after this
-```
 
 ## Building and Installation
 
@@ -59,8 +33,31 @@ ninja
 sudo ninja install
 ```
 
-Finally reboot
+Finally logout and login again
 
+
+
+## Troubleshooting for external monitors
+
+Test, if your monitor is capable of DDC/CI
+
+Use [ddcutil](https://www.ddcutil.com/) to check, if your hardware is capable of DDC/CI:
+
+```bash
+ddcutil detect
+```
+
+Here an overview of your connected monitors has to be shown, otherwise the budgie-monitor-brightness-applet won't work.
+If no monitor is shown, you may have to enable a feature called DDC/CI in your monitor OSD.
+If you are using a Nvidia graphics card and the output gives you error messages like "Invalid display" and "DDC communication failed" for your monitor, you may need another [workaround](https://www.ddcutil.com/nvidia/).
+
+
+On Solus this issue can be fixed by running
+
+```bash
+echo 'nvidia.NVreg_RegistryDwords=RMUseSwI2c=0x01 nvidia.RMI2cSpeed=100' | sudo tee /etc/kernel/cmdline.d/90_nvidia.conf
+sudo clr-boot-manager update # reboot after this
+```
 
 
 ## Manual configuration
