@@ -85,6 +85,12 @@ static void error(DDCA_Status code)
     );
 }
 
+static void error2(DDCA_Status code, char *msg)
+{
+    error(code);
+    fprintf(stderr, "%s\n", msg);
+}
+
 /**
  * adds a display to info array thread save and sorts it
  */
@@ -147,6 +153,26 @@ static void init_threaded(void *voidref)
 	   
 }
 
+/**
+ * verifies set brightness via vcp
+ */
+static bool verify_brightness(DDCA_Display_Handle *handle, int wanted_brightness)
+{
+  /* handle needs to be initialized */
+  if (*handle == NULL)
+    return true;
+
+  DDCA_Status rc = 0;
+  DDCA_Non_Table_Vcp_Value val;
+  /* ask current brightness value */
+  rc = ddca_get_non_table_vcp_value(*handle, BRIGHTNESS_VCP_CODE, &val);
+  if (rc != 0) {
+    error2(rc, "Error verifying brightness value");
+    return false;
+  }
+
+  return val.sl == wanted_brightness;
+}
 
 /**
  * thread to set Brightness for one Monitor
@@ -154,7 +180,7 @@ static void init_threaded(void *voidref)
 static void set_brightness_thread(void* val)
 {
     
-    DDCA_Status rc = 0;
+  DDCA_Status rc = 0;
 
 	Brightness_Thread *myinfo = val;
 	Display_Info *dinfo = info[myinfo -> dispnum];
@@ -170,39 +196,41 @@ static void set_brightness_thread(void* val)
 	while(*cont && rc == 0) {
 	
 		/* fall asleep when whished brightness is already set */
-		if (dinfo -> wanted_brightness == last_brightness) {
-			/* close display before sleeping */
-			if (handle != NULL) {
-				rc = ddca_close_display(handle);
-				if (rc != 0) {
-				    error(rc);
-				}
-			}
-				
-			/* sleep until another thread wakes you up */
-			pthread_mutex_lock(lock);
-			pthread_cond_wait(cond, lock);
-			pthread_mutex_unlock(lock);
+		if (dinfo -> wanted_brightness == last_brightness && verify_brightness(&handle, dinfo -> wanted_brightness)) {
 
-			if (!*cont)
-				break;
+		  /* close display before sleeping */
+		  if (handle != NULL) {
+			  rc = ddca_close_display(handle);
+			  if (rc != 0) {
+			      error2(rc, "Error closing handle 0");
+			  }
+		  }
 
-			/* open display again, when need to change brightness */
-			rc = ddca_open_display2(*(dinfo -> ref), true, &handle);
-			if (rc!= 0) {
-			    error(rc);
-			}
+		  /* sleep until another thread wakes you up */
+		  pthread_mutex_lock(lock);
+		  pthread_cond_wait(cond, lock);
+		  pthread_mutex_unlock(lock);
+
+      /* exit thread */
+		  if (!*cont)
+			  break;
+
+		  /* open display again, when need to change brightness */
+		  rc = ddca_open_display2(*dinfo -> ref, true, &handle);
+		  if (rc != 0) {
+		      error2(rc, "Error opening display");
+		  }
 			
 		}
 		
-		/* set brightness Value */
+		/* set brightness value */
 		last_brightness = dinfo -> wanted_brightness;
 		rc = ddca_set_non_table_vcp_value(handle, BRIGHTNESS_VCP_CODE, 0, last_brightness);
 		if (rc != 0) {
-		    error(rc);
+		    error2(rc, "Error setting brightness");
 		    rc = ddca_close_display(handle);
 		    if (rc != 0)
-		        error (rc);
+		        error2(rc, "Error closing handle 1");
 		}
 		
 	}
