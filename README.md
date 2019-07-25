@@ -102,3 +102,5 @@ Finally reboot
 - [x] add translations
 
 - [ ] detect connect and disconnect of external monitors
+
+- [ ] add xrandr as fallback 
